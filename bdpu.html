@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Хуанли</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #f5f4f1; --white: #ffffff; --border: #e2e0da; --text: #1a1916; --muted: #9a9690;
+  --accent: #2d6a4f; --accent-light: #e8f2ed; --accent2: #e07a5f; --done-color: #b5b1a8; --radius: 12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; display: flex; justify-content: center; padding: 32px 16px; }
+.app { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; }
+.topbar-title { font-size: 18px; font-weight: 600; }
+.topbar-sub { font-size: 13px; color: var(--muted); }
+.mini-thumb { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; cursor: pointer; display: flex; align-items: center; gap: 14px; transition: box-shadow .2s; user-select: none; }
+.mini-thumb:hover { box-shadow: 0 2px 12px rgba(0,0,0,.07); }
+.thumb-icon { width: 44px; height: 44px; background: var(--accent-light); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.thumb-text { flex: 1; }
+.thumb-month { font-size: 11px; color: var(--muted); }
+.thumb-day { font-size: 20px; font-weight: 600; line-height: 1.2; }
+.thumb-dow { font-size: 12px; color: var(--muted); }
+.thumb-arrow { font-size: 14px; color: var(--muted); transition: transform .25s; }
+.mini-thumb.open .thumb-arrow { transform: rotate(180deg); }
+.cal-panel { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; max-height: 0; opacity: 0; transition: max-height .35s cubic-bezier(.4,0,.2,1), opacity .25s; }
+.cal-panel.open { max-height: 380px; opacity: 1; }
+.cal-inner { padding: 16px; }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.nav-btn { background: none; border: 1px solid var(--border); border-radius: 8px; width: 30px; height: 30px; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; color: var(--text); transition: background .15s; }
+.nav-btn:hover { background: var(--bg); }
+.cal-label { font-size: 14px; font-weight: 600; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.dow { text-align: center; font-size: 11px; color: var(--muted); padding: 4px 0 8px; }
+.cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 13px; cursor: pointer; position: relative; transition: background .15s; }
+.cell:hover { background: var(--bg); }
+.cell.other { color: #ccc; pointer-events: none; }
+.cell.today { font-weight: 600; color: var(--accent); }
+.cell.today::after { content: ''; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 3px; height: 3px; border-radius: 50%; background: var(--accent); }
+.cell.selected { background: var(--accent); color: #fff; font-weight: 600; }
+.cell.selected::after { display: none; }
+.cell.has-dot::before { content: ''; position: absolute; top: 3px; right: 4px; width: 4px; height: 4px; border-radius: 50%; background: var(--accent2); }
+.cell.selected.has-dot::before { background: rgba(255,255,255,.7); }
+.cell.rec-hl { background: var(--accent-light); }
+.cell.rec-hl.selected { background: var(--accent); }
+.todo-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); }
+.todo-top { padding: 13px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.todo-date-label { font-size: 13px; font-weight: 600; }
+.todo-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.badge { font-size: 11px; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 2px 10px; }
+.todo-list { list-style: none; min-height: 48px; max-height: 240px; overflow-y: auto; }
+.item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--bg); cursor: pointer; transition: background .12s; position: relative; }
+.item:hover { background: var(--bg); }
+.drag-handle { color: var(--border); font-size: 14px; cursor: grab; opacity: 0; transition: opacity .15s; padding: 0 2px; flex-shrink: 0; line-height: 1; touch-action: none; }
+.item:hover .drag-handle { opacity: 1; }
+.item.dragging { opacity: .4; background: var(--bg); }
+.item.drag-over { border-top: 2px solid var(--accent); }
+.chk { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--border); flex-shrink: 0; position: relative; transition: all .15s; pointer-events: none; }
+.item.done .chk { background: var(--accent); border-color: var(--accent); }
+.item.done .chk::after { content: '✓'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; }
+.item-text { flex: 1; font-size: 13px; }
+.item.done .item-text { color: var(--done-color); text-decoration: line-through; }
+.rec-tag { font-size: 10px; padding: 2px 7px; border-radius: 20px; background: var(--accent-light); color: var(--accent); font-weight: 500; white-space: nowrap; }
+.del-btn { background: none; border: none; color: var(--border); cursor: pointer; font-size: 16px; padding: 0 2px; opacity: 0; transition: opacity .15s, color .15s; line-height: 1; }
+.item:hover .del-btn { opacity: 1; }
+.del-btn:hover { color: var(--accent2); }
+.empty { padding: 20px 16px; text-align: center; font-size: 13px; color: var(--muted); }
+.input-area { padding: 10px 12px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+.input-row { display: flex; gap: 8px; }
+.todo-input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 8px 11px; outline: none; transition: border-color .2s; }
+.add-btn { background: var(--accent); border: none; border-radius: 8px; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; padding: 8px 14px; cursor: pointer; transition: opacity .2s; white-space: nowrap; }
+.rec-select { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 12px; padding: 5px 8px; outline: none; cursor: pointer; }
+.toast-wrap { position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 999; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+.toast { background: var(--text); color: #fff; border-radius: 40px; padding: 10px 20px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,.18); white-space: nowrap; opacity: 0; transform: translateY(-10px) scale(.96); transition: opacity .22s ease, transform .22s ease; }
+.toast.show { opacity: 1; transform: translateY(0) scale(1); }
+.toast.hide { opacity: 0; transform: translateY(-8px) scale(.96); }
+.toast-icon { width: 20px; height: 20px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="toast-wrap" id="toastWrap"></div>
+
+<div class="app">
+    <div style="display: flex; justify-content: flex-end; margin-bottom: -10px;">
+        <button onclick="logout()" style="background: none; border: none; color: var(--accent2); font-size: 11px; cursor: pointer; font-weight: 600;">Гарах</button>
+    </div>
+
+    <div class="topbar">
+      <div class="topbar-title">Өдөр хоног</div>
+      <div class="topbar-sub" id="todayStr">—</div>
+    </div>
+
+    <div class="mini-thumb" id="miniThumb">
+      <div class="thumb-icon">📅</div>
+      <div class="thumb-text">
+        <div class="thumb-month" id="tMonth">—</div>
+        <div class="thumb-day" id="tDay">—</div>
+        <div class="thumb-dow" id="tDow">—</div>
+      </div>
+      <div class="thumb-arrow">▾</div>
+    </div>
+
+    <div class="cal-panel" id="calPanel">
+      <div class="cal-inner">
+        <div class="cal-nav">
+          <button class="nav-btn" id="prevBtn">‹</button>
+          <div class="cal-label" id="calLabel">—</div>
+          <button class="nav-btn" id="nextBtn">›</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+    </div>
+
+    <div class="todo-card">
+      <div class="todo-top">
+        <div>
+          <div class="todo-date-label" id="todoDateLabel">Өдөр сонгоно уу</div>
+          <div class="todo-sub" id="todoSub"></div>
+        </div>
+        <div class="badge" id="todoBadge">0 / 0</div>
+      </div>
+      <ul class="todo-list" id="todoList"></ul>
+      <div class="input-area">
+        <div class="input-row">
+          <input class="todo-input" id="todoInput" placeholder="Шинэ зүйл нэмэх…" autocomplete="off"/>
+          <button class="add-btn" id="addBtn">Нэмэх</button>
+        </div>
+        <div class="rec-row" style="display: flex; align-items: center; gap: 8px;">
+          <span class="rec-label" style="font-size: 12px; color: var(--muted);">Өдөрөө сонгоно уу:</span>
+          <select class="rec-select" id="recSelect">
+            <option value="none">—</option>
+            <option value="daily">Өдөр бүр</option>
+            <option value="0">Даваа бүр</option>
+            <option value="1">Мягмар бүр</option>
+            <option value="2">Лхагва бүр</option>
+            <option value="3">Пүрэв бүр</option>
+            <option value="4">Баасан бүр</option>
+            <option value="5">Бямба бүр</option>
+            <option value="6">Ням бүр</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+<script>
+const currentUser = sessionStorage.getItem('currentUser');
+if (!currentUser) {
+    window.location.href = "index.html";
+}
+function logout() {
+    sessionStorage.removeItem('currentUser');
+    window.location.href = "index.html";
+}
+const DATA_KEY = currentUser + '_calendar_data';
+const RECS_KEY = currentUser + '_calendar_recs';
+const ID_KEY = currentUser + '_calendar_nextId';
+const MN_MONTHS = ["1-р сар","2-р сар","3-р сар","4-р сар","5-р сар","6-р сар","7-р сар","8-р сар","9-р сар","10-р сар","11-р сар","12-р сар"];
+const MN_MONTHS_F = ["Нэгдүгээр сар","Хоёрдугаар сар","Гуравдугаар сар","Дөрөвдүгээр сар","Тавдугаар сар","Зургадугаар сар","Долдугаар сар","Наймдугаар сар","Есдүгээр сар","Аравдугаар сар","Арваннэгдүгээр сар","Арванхоёрдугаар сар"];
+const MN_DOW_S = ["Да","Мя","Лх","Пү","Ба","Бя","Ня"];
+const MN_DOW_F = ["Даваа","Мягмар","Лхагва","Пүрэв","Баасан","Бямба","Ням"];
+const today = new Date();
+let viewY = today.getFullYear(), viewM = today.getMonth();
+let selKey = dateKey(today);
+let data = {}, recs = [], nextId = 0;
+function saveData() {
+    localStorage.setItem(DATA_KEY, JSON.stringify(data));
+    localStorage.setItem(RECS_KEY, JSON.stringify(recs));
+    localStorage.setItem(ID_KEY, JSON.stringify(nextId));
+}
+function loadData() {
+    const savedData = localStorage.getItem(DATA_KEY);
+    const savedRecs = localStorage.getItem(RECS_KEY);
+    const savedId = localStorage.getItem(ID_KEY);
+    data = savedData ? JSON.parse(savedData) : {};
+    recs = savedRecs ? JSON.parse(savedRecs) : [];
+    nextId = savedId ? parseInt(savedId) : 0;
+}
+function dateKey(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function keyToDate(k) { const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d); }
+function monDow(d) { const j=d.getDay(); return j===0?6:j-1; }
+function effectiveList(key) {
+    const stored = data[key];
+    const d = keyToDate(key), dow = monDow(d);
+    const validRecs = recs.filter(r=>r.rec==='daily'||Number(r.rec)===dow);
+    let base = [];
+    if (stored) base = stored.filter(t=>!t.fromRec || validRecs.find(r=>r.id===t.recId));
+    validRecs.forEach(r=>{ if (!base.find(t=>t.fromRec&&t.recId===r.id)) base.push({text:r.text,done:false,recId:r.id,fromRec:true}); });
+    return base;
+}
+function hasDot(key) { return effectiveList(key).length>0; }
+function recHl(key) { const d=keyToDate(key),dow=monDow(d); return recs.some(r=>r.rec==='daily'||Number(r.rec)===dow); }
+function showToast(msg, sub) {
+    const wrap = document.getElementById('toastWrap');
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.innerHTML = `<div class="toast-icon">✓</div><div><div style="font-size:13px">${msg}</div>${sub?`<div style="font-size:11px;opacity:.6">${sub}</div>`:''}</div>`;
+    wrap.appendChild(el);
+    requestAnimationFrame(()=>{ el.classList.add('show'); });
+    setTimeout(()=>{ el.classList.add('hide'); el.addEventListener('transitionend', ()=>el.remove(), {once:true}); }, 2200);
+}
+function updateThumb(d) {
+    document.getElementById('tMonth').textContent=MN_MONTHS_F[d.getMonth()]+' '+d.getFullYear();
+    document.getElementById('tDay').textContent=d.getDate()+' өдөр';
+    document.getElementById('tDow').textContent=MN_DOW_F[monDow(d)];
+}
+function buildCal() {
+    document.getElementById('calLabel').textContent=MN_MONTHS_F[viewM]+' '+viewY;
+    const grid=document.getElementById('calGrid'); grid.innerHTML='';
+    MN_DOW_S.forEach(s=>{const el=document.createElement('div');el.className='dow';el.textContent=s;grid.appendChild(el);});
+    const first=new Date(viewY,viewM,1);
+    const sd=monDow(first);
+    const dim=new Date(viewY,viewM+1,0).getDate();
+    const dip=new Date(viewY,viewM,0).getDate();
+    const cells=[];
+    for(let i=sd-1;i>=0;i--) cells.push({d:dip-i,m:viewM-1,y:viewY,other:true});
+    for(let d=1;d<=dim;d++) cells.push({d,m:viewM,y:viewY,other:false});
+    const fill=cells.length%7===0?0:7-cells.length%7;
+    for(let d=1;d<=fill;d++) cells.push({d,m:viewM+1,y:viewY,other:true});
+    cells.forEach(c=>{
+        const el=document.createElement('div'); el.className='cell'; el.textContent=c.d;
+        if(c.other){el.classList.add('other');grid.appendChild(el);return;}
+        const cd=new Date(c.y,c.m,c.d),key=dateKey(cd);
+        if(c.d===today.getDate()&&c.m===today.getMonth()&&c.y===today.getFullYear()) el.classList.add('today');
+        if(key===selKey) el.classList.add('selected');
+        if(hasDot(key)) el.classList.add('has-dot');
+        if(recHl(key)) el.classList.add('rec-hl');
+        el.onclick=()=>{ selKey=key; updateThumb(cd); buildCal(); renderTodos(); document.getElementById('calPanel').classList.remove('open'); document.getElementById('miniThumb').classList.remove('open'); };
+        grid.appendChild(el);
+    });
+}
+function renderTodos() {
+    const list=effectiveList(selKey);
+    const ul=document.getElementById('todoList');
+    const parts=selKey.split('-');
+    document.getElementById('todoDateLabel').textContent= parts[0]+' / '+MN_MONTHS[Number(parts[1])-1]+', '+Number(parts[2])+' өдөр';
+    document.getElementById('todoSub').textContent=MN_DOW_F[monDow(keyToDate(selKey))];
+    document.getElementById('todoBadge').textContent=list.filter(t=>t.done).length+' / '+list.length;
+    ul.innerHTML='';
+    if(!list.length){ul.innerHTML='<div class="empty">Хийх зүйл алга</div>';return;}
+    list.forEach((todo,i)=>{
+        const li=document.createElement('li'); li.className='item'+(todo.done?' done':''); li.draggable=true; li.dataset.idx=i;
+        li.innerHTML = `<span class="drag-handle">⠿</span><div class="chk"></div><span class="item-text">${todo.text}</span>`;
+        if(todo.fromRec){
+            const r=recs.find(r=>r.id===todo.recId);
+            const tagTxt = r?(r.rec==='daily'?'өдөр бүр':MN_DOW_F[Number(r.rec)]+' бүр'):'↻';
+            li.innerHTML += `<span class="rec-tag">${tagTxt}</span>`;
+        }
+        const del=document.createElement('button'); del.className='del-btn'; del.innerHTML='×';
+        del.onclick=(e)=>{
+            e.stopPropagation();
+            if(todo.fromRec){ recs=recs.filter(r=>r.id!==todo.recId); Object.keys(data).forEach(k=>{data[k]=(data[k]||[]).filter(t=>t.recId!==todo.recId);}); }
+            else { data[selKey]=data[selKey].filter(t=>t!==todo); }
+            saveData(); buildCal(); renderTodos(); showToast('Устгагдлаа', todo.text);
+        };
+        li.appendChild(del);
+        li.onclick=(e)=>{
+            if(e.target.classList.contains('del-btn')||e.target.classList.contains('drag-handle')) return;
+            if(!data[selKey])data[selKey]=[];
+            let nowDone;
+            if(todo.fromRec){
+                const ov = data[selKey].find(t=>t.fromRec&&t.recId===todo.recId);
+                if(ov){ ov.done=!ov.done; nowDone=ov.done; }
+                else { data[selKey].push({text:todo.text,done:true,recId:todo.recId,fromRec:true}); nowDone=true; }
+            } else { todo.done=!todo.done; nowDone=todo.done; }
+            if(nowDone) showToast('Хийлээ!', todo.text);
+            saveData(); buildCal(); renderTodos();
+        };
+
+        li.ondragstart=e=>{ e.dataTransfer.setData('idx',i); setTimeout(()=>li.classList.add('dragging'),0); };
+        li.ondragend=()=> { li.classList.remove('dragging'); ul.querySelectorAll('.item').forEach(el=>el.classList.remove('drag-over')); };
+        li.ondragover=e=>{ e.preventDefault(); li.classList.add('drag-over'); };
+        li.ondragleave=()=>li.classList.remove('drag-over');
+        li.ondrop=e=>{ const from=Number(e.dataTransfer.getData('idx')), to=Number(li.dataset.idx); if(from!==to) reorder(from,to); };
+        ul.appendChild(li);
+    });
+}
+function reorder(from, to) {
+    const list=effectiveList(selKey);
+    const moved=list.splice(from,1)[0]; list.splice(to,0,moved);
+    data[selKey]=list.map(t=>{
+        if(!t.fromRec) return t;
+        return (data[selKey]||[]).find(d=>d.fromRec&&d.recId===t.recId)||{text:t.text,done:t.done,recId:t.recId,fromRec:true};
+    });
+    saveData(); renderTodos(); buildCal();
+}
+function addTodo() {
+    const inp=document.getElementById('todoInput');
+    const rec=document.getElementById('recSelect').value;
+    const text=inp.value.trim();
+    if(!text){ showToast('Юу хийхээ бичнэ үү!!'); return; }
+    if(rec==='none'){ if(!data[selKey])data[selKey]=[]; data[selKey].push({text,done:false}); showToast('Нэмэгдлээ!', text); }
+    else { recs.push({id:nextId++,text,rec}); const rl=rec==='daily'?'Өдөр бүр':MN_DOW_F[Number(rec)]+' бүр'; showToast('Нэмэгдлээ!', text+' · '+rl); }
+    inp.value=''; saveData(); buildCal(); renderTodos();
+}
+document.getElementById('addBtn').onclick=addTodo;
+document.getElementById('todoInput').onkeydown=e=>{if(e.key==='Enter')addTodo();};
+document.getElementById('miniThumb').onclick=()=>{
+    const p=document.getElementById('calPanel'); const m=document.getElementById('miniThumb');
+    p.classList.toggle('open'); m.classList.toggle('open');
+};
+document.getElementById('prevBtn').onclick=()=>{viewM--;if(viewM<0){viewM=11;viewY--;}buildCal();};
+document.getElementById('nextBtn').onclick=()=>{viewM++;if(viewM>11){viewM=0;viewY++;}buildCal();};
+(function(){
+    loadData();
+    document.getElementById('todayStr').textContent= today.getFullYear()+' / '+MN_MONTHS[today.getMonth()]+', '+today.getDate()+' өдөр';
+    updateThumb(today); buildCal(); renderTodos();
+})();
+</script>
+</body>
+</html>
