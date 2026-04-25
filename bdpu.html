@@ -202,7 +202,7 @@ function showToast(msg, sub) {
 }
 function updateThumb(d) {
     document.getElementById('tMonth').textContent=MN_MONTHS_F[d.getMonth()]+' '+d.getFullYear();
-    document.getElementById('tDay').textContent=d.getDate()+' өдөр';
+    document.getElementById('tDay').textContent=d.getDate()+'-н';
     document.getElementById('tDow').textContent=MN_DOW_F[monDow(d)];
 }
 function buildCal() {
